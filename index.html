@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MC HR Tool — Monochrome</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: #e2e0d8;
+    --border2: #ccc9be;
+    --text: #1a1a1a;
+    --text-muted: #888880;
+    --text-dim: #555550;
+    --accent: #3d6b4f;
+    --accent2: #2e5440;
+    --danger: #c0392b;
+    --warn: #d68910;
+    --pass: #27ae60;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Noto Sans JP', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-weight: 300;
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* Header */
+  .header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+  }
+
+  .logo span {
+    color: var(--accent);
+  }
+
+  .header-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* Nav tabs */
+  .nav {
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    gap: 0;
+  }
+
+  .nav-tab {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    padding: 14px 20px;
+    cursor: pointer;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .nav-tab:hover { color: var(--text-dim); }
+  .nav-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* Main layout */
+  .main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 32px;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Section title */
+  .section-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  /* Position selector */
+  .position-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .position-card {
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--surface);
+  }
+
+  .position-card:hover {
+    border-color: var(--border2);
+    background: var(--surface2);
+  }
+
+  .position-card.selected {
+    border-color: var(--accent);
+    background: rgba(200, 245, 66, 0.05);
+  }
+
+  .position-card .pos-name {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  .position-card .pos-comp {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .position-card .pos-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border2);
+    margin-bottom: 12px;
+    transition: background 0.15s;
+  }
+
+  .position-card.selected .pos-dot { background: var(--accent); }
+
+  /* Input area */
+  .input-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 300;
+    padding: 16px;
+    resize: vertical;
+    transition: border-color 0.2s;
+    line-height: 1.7;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  textarea::placeholder { color: var(--text-muted); }
+
+  /* File upload */
+  .file-zone {
+    border: 1px dashed var(--border2);
+    border-radius: 2px;
+    padding: 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  .file-zone:hover, .file-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(200, 245, 66, 0.03);
+  }
+
+  .file-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .file-zone-text {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .file-zone-text span {
+    color: var(--accent);
+  }
+
+  .file-info {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    margin-top: 8px;
+  }
+
+  /* Or divider */
+  .or-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 16px 0;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .or-divider::before, .or-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Button */
+  .btn {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    padding: 12px 28px;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0f0f0f;
+    font-weight: 500;
+  }
+
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:disabled {
+    background: var(--border2);
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+  }
+
+  .btn-ghost:hover { border-color: var(--text-muted); color: var(--text); }
+
+  /* API key field */
+  .api-input-wrap {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  input[type="password"], input[type="text"] {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 10px 14px;
+    transition: border-color 0.2s;
+  }
+
+  input[type="password"]:focus, input[type="text"]:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  input::placeholder { color: var(--text-muted); }
+
+  /* Result area */
+  .result-wrap {
+    margin-top: 28px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .verdict-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    border-radius: 2px;
+    margin-bottom: 20px;
+    border: 1px solid;
+  }
+
+  .verdict-bar.pass {
+    background: rgba(74, 222, 128, 0.06);
+    border-color: rgba(74, 222, 128, 0.3);
+  }
+
+  .verdict-bar.conditional {
+    background: rgba(245, 166, 35, 0.06);
+    border-color: rgba(245, 166, 35, 0.3);
+  }
+
+  .verdict-bar.fail {
+    background: rgba(255, 95, 95, 0.06);
+    border-color: rgba(255, 95, 95, 0.3);
+  }
+
+  .verdict-icon {
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  .verdict-label {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .verdict-bar.pass .verdict-label { color: var(--pass); }
+  .verdict-bar.conditional .verdict-label { color: var(--warn); }
+  .verdict-bar.fail .verdict-label { color: var(--danger); }
+
+  .verdict-sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  /* Score bars */
+  .score-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .score-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 16px;
+  }
+
+  .score-name {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .score-bar-wrap {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.8s ease;
+  }
+
+  .score-val {
+    font-family: var(--mono);
+    font-size: 18px;
+    color: var(--text);
+  }
+
+  .score-val span {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* Analysis sections */
+  .analysis-section {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+
+  .analysis-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    text-transform: uppercase;
+  }
+
+  .analysis-body {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text-dim);
+  }
+
+  .tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    margin: 3px 3px 3px 0;
+  }
+
+  .tag-pass { background: rgba(74, 222, 128, 0.1); color: var(--pass); border: 1px solid rgba(74, 222, 128, 0.2); }
+  .tag-warn { background: rgba(245, 166, 35, 0.1); color: var(--warn); border: 1px solid rgba(245, 166, 35, 0.2); }
+  .tag-fail { background: rgba(255, 95, 95, 0.1); color: var(--danger); border: 1px solid rgba(255, 95, 95, 0.2); }
+
+  /* Loading */
+  .loading-wrap {
+    display: none;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .loading-wrap.show { display: block; }
+
+  .loader {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* Error */
+  .error-msg {
+    background: rgba(255, 95, 95, 0.06);
+    border: 1px solid rgba(255, 95, 95, 0.3);
+    border-radius: 2px;
+    padding: 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--danger);
+    margin-top: 16px;
+    display: none;
+  }
+
+  .error-msg.show { display: block; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .score-grid { grid-template-columns: 1fr; }
+    .position-grid { grid-template-columns: 1fr 1fr; }
+    .main { padding: 24px 16px; }
+  }
+
+  /* Key status indicator */
+  .key-status {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .key-status.set {
+    color: var(--pass);
+    border-color: rgba(74, 222, 128, 0.2);
+    background: rgba(74, 222, 128, 0.05);
+  }
+
+  .key-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .actions-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  .char-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">MC <span>//</span> HR TOOL</div>
+  <div class="header-tag">大池真奈美 · Monochrome</div>
+</header>
+
+<nav class="nav">
+  <div class="nav-tab active" onclick="switchTab('screening')">① 書類選考AI</div>
+  <div class="nav-tab disabled" onclick="switchTab('debrief')" style="opacity:0.4;cursor:not-allowed;" title="近日公開">② Debrief生成</div>
+  <div class="nav-tab disabled" onclick="switchTab('feedback')" style="opacity:0.4;cursor:not-allowed;" title="近日公開">③ FB文章生成</div>
+</nav>
+
+<main class="main">
+
+  <!-- SCREENING PAGE -->
+  <div class="page active" id="page-screening">
+
+    <!-- API Key -->
+    <div class="card" id="api-section">
+      <p class="section-title">API設定</p>
+      <div class="api-input-wrap">
+        <input type="password" id="api-key" placeholder="sk-ant-api..." />
+        <button class="btn btn-primary" onclick="saveKey()">保存</button>
+      </div>
+      <div id="key-status" class="key-status">
+        <div class="key-dot"></div>
+        未設定
+      </div>
+    </div>
+
+    <!-- Step 1: Position -->
+    <p class="section-title">STEP 01 — ポジション選択</p>
+    <div class="position-grid" id="position-grid"></div>
+
+    <!-- Step 2: Resume -->
+    <p class="section-title">STEP 02 — 候補者レジュメ</p>
+
+    <div class="file-zone" id="file-zone">
+      <input type="file" id="pdf-input" accept=".pdf" onchange="handleFile(this)" />
+      <div class="file-zone-text">
+        PDFをドラッグ＆ドロップ、または<span>クリックして選択</span>
+      </div>
+      <div class="file-info" id="file-info"></div>
+    </div>
+
+    <div class="or-divider">または</div>
+
+    <label class="input-label">テキストで貼り付ける</label>
+    <textarea id="resume-text" rows="8" placeholder="候補者の職歴・スキルなどを貼り付けてください..."></textarea>
+
+    <div class="actions-row">
+      <button class="btn btn-primary" id="screen-btn" onclick="runScreening()">
+        書類選考を実行
+      </button>
+      <button class="btn btn-ghost" onclick="resetForm()">リセット</button>
+      <div class="char-count" id="char-count"></div>
+    </div>
+
+    <div class="error-msg" id="error-msg"></div>
+
+    <!-- Loading -->
+    <div class="loading-wrap" id="loading">
+      <div class="loader"></div>
+      <div class="loading-text">候補者情報を分析中...</div>
+    </div>
+
+    <!-- Result -->
+    <div class="result-wrap" id="result" style="display:none;"></div>
+
+  </div>
+
+</main>
+
+<script>
+// ============================
+// DATA
+// ============================
+const POSITIONS = [
+  {
+    id: 'sales-manager',
+    name: 'Sales Manager',
+    nameJa: '営業マネージャー',
+    comp: '700–900万円',
+    required: [
+      '5年以上の法人営業経験（特に新規開拓・提案営業）',
+      '営業組織の立ち上げまたはプロセス設計経験（KPI設計、営業フロー構築等）',
+      'チームマネジメント経験（メンバー育成・評価・目標管理）',
+      'Excel/PowerPoint等の業務使用経験',
+      '複数ステークホルダー調整を伴う案件推進経験'
+    ],
+    preferred: [
+      '住宅業界・建材メーカー・住宅設備機器メーカーでの経験',
+      'スタートアップでの事業立ち上げ経験',
+      '技術・施工・設計など多部署協働のPM経験',
+      '営業戦略の設計経験'
+    ],
+    context: 'Roof-1（太陽光パネル一体型屋根）とEnergy-1（HEMS）の事業成長をリードする営業マネージャー。当初はICとして現場に入り、将来的にはプレイングマネージャーへ。B2C（新築住宅オーナー）・B2B（ハウスメーカー/工務店）双方の営業を統括する。'
+  },
+  {
+    id: 'sales-dev',
+    name: 'Sales Developer',
+    nameJa: '営業開発担当',
+    comp: '550–750万円',
+    required: [
+      '1年以上の営業経験',
+      'Excel/PowerPoint等の業務使用経験'
+    ],
+    preferred: [
+      '新規開拓営業・法人営業の経験',
+      '住宅業界・建材メーカー・住宅設備機器メーカーでの経験'
+    ],
+    context: 'Roof-1とEnergy-1の売上最大化のための営業活動。B2C/B2B新規開拓から案件管理・クロージングまでを担当。住宅エネルギーのトータル提案（発電量試算・屋根配置図・見積・補助金活用）を行う。'
+  },
+  {
+    id: 'biz-dev',
+    name: 'Business Developer',
+    nameJa: '新規事業開発（電力）',
+    comp: '700–800万円',
+    required: [
+      '電力小売業界での実務経験または知見',
+      '新規事業立ち上げ・事業開発経験（一人でプロジェクトを完遂できる方）',
+      'Excelを用いた数値管理・収益シミュレーション・積算業務の経験',
+      'ステークホルダー折衝能力と複雑なオペレーション設計・実行能力',
+      '日本語ビジネスレベル'
+    ],
+    preferred: [
+      'データに基づいた分析で経営層に意思決定を促した経験',
+      '複数部署を横断したプロジェクト推進経験'
+    ],
+    context: '電力小売事業・エネルギーマネジメント事業の垂直立ち上げを担う。CEOやCOOと戦略を共に描き、オペレーション構築・ステークホルダー調整・法規制対応・請求スキーム構築まで自ら手を動かす。'
+  },
+  {
+    id: 'elec-const',
+    name: '電気施工管理',
+    nameJa: '低圧太陽光パネル',
+    comp: '600–800万円',
+    required: [
+      '電気設備施工管理として住宅設備案件に携わった経験'
+    ],
+    preferred: [
+      '太陽光パネル設置における施工管理経験',
+      '電気機械メーカーサービス（保守・修繕）経験',
+      'リーダー経験',
+      '電気工事士（1種/2種）',
+      '電気施工管理技士（1級/2級）',
+      '普通自動車運転免許',
+      '英語（初級以上）'
+    ],
+    hiringCriteria: { ageLimit: '35歳以下', experience: '必須ではないが、将来的に電気工事施工管理技士の取得が求められる', license: '電気工事施工管理技士（1級・2級）※入社後取得でも可' },
+    context: 'Roof-1・HEMSの計画設計および施工管理（電気系統中心）。住宅オーナー・建築家への導入提案サポート、発電量試算・配線設計・最適配置提案。自社発電量計測ソフトとパワコン・蓄電池連携の設計も担う。'
+  },
+  {
+    id: 'elec-design',
+    name: '電気施工管理・設計',
+    nameJa: '太陽光システム',
+    comp: '600–800万円',
+    required: [
+      '高圧・低圧の太陽光発電システムの基本設計及び施工管理経験',
+      '電気設備施工管理経験',
+      '普通自動車運転免許'
+    ],
+    preferred: [
+      '屋根上太陽光発電システムの基本設計・施工管理経験',
+      '住宅から野丁場など幅広い経験',
+      '電気工事士（1種/2種）',
+      '電気施工管理技士（1級/2級）'
+    ],
+    hiringCriteria: [
+      { ageLimit: '50歳以下（枠A）', experience: '電気工事および太陽光施工管理・設計の経験（施工管理のみでも可）。公共工事経験者優遇', license: '電気工事施工管理技士（1級・2級）' },
+      { ageLimit: '55歳以下（枠B）', experience: '電気工事および太陽光設計の経験（電気工事のみでも可）', license: '経験があれば無資格でも可' }
+    ],
+    context: 'Roof-1の計画設計・施工管理（電気系統）。ストリング図・単線結線図・収まり図などの図面作成（AutoCAD/JW CAD）、パワコン・蓄電池を含むシステム設計、施工会社管理を担当。'
+  },
+  {
+    id: 'cad-operator',
+    name: 'CADオペレーター',
+    nameJa: '太陽光システム',
+    comp: '400–600万円',
+    required: [
+      'AutoCADの実務経験2年以上'
+    ],
+    preferred: [
+      '太陽光パネル設置工事の施工管理経験',
+      '電気設備工事施工図作成の経験',
+      '電気機械メーカーサービス（保守・修繕）業務経験',
+      '電気工事士（1種/2種）',
+      '電気施工管理技士（1級/2級）'
+    ],
+    context: 'Roof-1の計画設計に関わるストリング図・単線結線図・パワコン蓄電池の収まり図などの図面作成（AutoCAD）。系統連系・JPEA申請・補助金申請等の申請業務も担当。将来的に業務の幅を広げることも歓迎。'
+  },
+  {
+    id: 'elec-engineer',
+    name: '電気工事士',
+    nameJa: '太陽光・住宅設備',
+    comp: '400–700万円',
+    required: [
+      '電気設備施工管理として住宅設備案件に携わった経験',
+      '普通自動車運転免許'
+    ],
+    preferred: [
+      '電気工事士（1種/2種）',
+      '電気施工管理技士（1級/2級）',
+      '電気機械メーカーサービス（保守・修繕）経験',
+      'エネルギーや機械への興味・関心'
+    ],
+    hiringCriteria: { ageLimit: '35歳以下', experience: '電気工事の経験（太陽光・住宅・商業施設・工場など）', license: '電気工事士（1種・2種）どちらか必須' },
+    context: '住宅・非住宅での太陽光発電設備導入工事の現場作業（パワコン・蓄電池の設置、配線工事）。協力会社への外注時の施工管理、住宅オーナーや建築家への導入提案サポート（発電量試算・配線設計・最適配置提案）も担う。'
+  }
+];
+
+const COMPETENCY_SUMMARY = `
+モノクロームのコンピテンシー（Biz職種共通）：
+- Open communication & teamwork: 情報共有・チームへの貢献・フィードバックの受容
+- Learning & Inventing: 自発的学習・チームへの知識還元・仕組みづくり
+- 自由と責任: 信頼獲得・高い品質基準・Ownership・Bias for Action・自律的優先順位付け
+- Speed & Prioritization: 期限設定・スピーディな実行・複数タスクの優先順位
+- Customer Understanding: 顧客視点・顧客期待の超過
+- Deliver Results: 結果を出す・KPI管理・ブロッカー除去
+
+評価時の参考（Bizレベル感）：
+- JL0: サポートを得ながらタスク実行
+- JL1: 指示に基づき責任を持って完遂
+- JL2: ビジョンを理解し自ら完遂（チームの最も信頼できる個人）
+- JL3: 周囲のパフォーマンスを引き上げながら難しいプロジェクトを遂行
+- JL4以上: チームをリードし事業インパクトを創る
+`;
+
+// ============================
+// STATE
+// ============================
+let selectedPosition = null;
+let pdfText = null;
+let apiKey = localStorage.getItem('mc_hr_key') || '';
+
+// ============================
+// INIT
+// ============================
+function init() {
+  renderPositions();
+  updateKeyStatus();
+  if (apiKey) {
+    document.getElementById('api-key').value = apiKey;
+  }
+  document.getElementById('resume-text').addEventListener('input', updateCharCount);
+}
+
+function renderPositions() {
+  const grid = document.getElementById('position-grid');
+  grid.innerHTML = POSITIONS.map(p => `
+    <div class="position-card" id="pos-${p.id}" onclick="selectPosition('${p.id}')">
+      <div class="pos-dot"></div>
+      <div class="pos-name">${p.name}</div>
+      <div class="pos-name" style="font-size:11px;color:var(--text-muted);font-weight:300;margin-bottom:6px;">${p.nameJa}</div>
+      <div class="pos-comp">${p.comp}</div>
+    </div>
+  `).join('');
+}
+
+function selectPosition(id) {
+  selectedPosition = id;
+  document.querySelectorAll('.position-card').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`pos-${id}`).classList.add('selected');
+}
+
+function saveKey() {
+  const val = document.getElementById('api-key').value.trim();
+  if (!val) return;
+  apiKey = val;
+  localStorage.setItem('mc_hr_key', val);
+  updateKeyStatus();
+}
+
+function updateKeyStatus() {
+  const el = document.getElementById('key-status');
+  if (apiKey) {
+    el.className = 'key-status set';
+    el.innerHTML = `<div class="key-dot"></div>APIキー設定済み`;
+  } else {
+    el.className = 'key-status';
+    el.innerHTML = `<div class="key-dot"></div>未設定`;
+  }
+}
+
+function updateCharCount() {
+  const txt = document.getElementById('resume-text').value;
+  const el = document.getElementById('char-count');
+  el.textContent = txt.length > 0 ? `${txt.length} 文字` : '';
+}
+
+// ============================
+// FILE HANDLING
+// ============================
+async function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  document.getElementById('file-info').textContent = `${file.name} (${(file.size/1024).toFixed(0)}KB)`;
+
+  // Read as base64 for API
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    pdfText = e.target.result.split(',')[1]; // base64
+  };
+  reader.readAsDataURL(file);
+}
+
+// Drag and drop
+const fileZone = document.getElementById('file-zone');
+fileZone.addEventListener('dragover', (e) => { e.preventDefault(); fileZone.classList.add('drag-over'); });
+fileZone.addEventListener('dragleave', () => fileZone.classList.remove('drag-over'));
+fileZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  fileZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') {
+    document.getElementById('pdf-input').files = e.dataTransfer.files;
+    handleFile(document.getElementById('pdf-input'));
+  }
+});
+
+// ============================
+// SCREENING
+// ============================
+async function runScreening() {
+  const key = apiKey || document.getElementById('api-key').value.trim();
+  if (!key) { showError('APIキーを入力してください。'); return; }
+  if (!selectedPosition) { showError('ポジションを選択してください。'); return; }
+
+  const resumeText = document.getElementById('resume-text').value.trim();
+  const hasPdf = pdfText;
+
+  if (!resumeText && !hasPdf) { showError('レジュメを入力またはPDFをアップロードしてください。'); return; }
+
+  const pos = POSITIONS.find(p => p.id === selectedPosition);
+
+  showLoading(true);
+  showError('');
+  document.getElementById('result').style.display = 'none';
+
+  try {
+    let messages;
+
+    if (hasPdf && !resumeText) {
+      // PDF mode
+      messages = [{
+        role: 'user',
+        content: [
+          {
+            type: 'document',
+            source: { type: 'base64', media_type: 'application/pdf', data: pdfText }
+          },
+          {
+            type: 'text',
+            text: buildPrompt(pos, '[PDFに記載の通り]')
+          }
+        ]
+      }];
+    } else {
+      messages = [{
+        role: 'user',
+        content: buildPrompt(pos, resumeText)
+      }];
+    }
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: buildSystem(),
+        messages
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || `APIエラー: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data.content.map(c => c.text || '').join('');
+    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+    renderResult(parsed, pos);
+
+  } catch (e) {
+    showError(e.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+function buildSystem() {
+  return `あなたは株式会社モノクローム（Monochrome）のHR担当・大池真奈美さんの書類選考をサポートするAIアシスタントです。
+候補者のレジュメとポジション要件・コンピテンシーを照合し、書類選考の判定を行います。
+
+${COMPETENCY_SUMMARY}
+
+必ず以下のJSON形式のみで回答してください。前置きや説明文は不要です。
+
+{
+  "verdict": "pass" | "conditional" | "fail",
+  "verdict_label": "通過推奨" | "要検討" | "見送り推奨",
+  "verdict_reason": "判定理由を1〜2文で",
+  "scores": {
+    "required_fit": { "score": 0-100, "comment": "必須要件との合致度" },
+    "preferred_fit": { "score": 0-100, "comment": "歓迎要件との合致度" },
+    "competency_fit": { "score": 0-100, "comment": "モノクロームのコンピテンシーとの合致推定" },
+    "overall": { "score": 0-100, "comment": "総合評価" }
+  },
+  "strengths": ["強み1", "強み2", "強み3"],
+  "concerns": ["懸念点1", "懸念点2"],
+  "missing_required": ["不足している必須要件（あれば）"],
+  "recommendation": "面接官へのコメント。どこを確認すべきか、どんな候補者かを2〜3文で"
+}`;
+}
+
+function buildHiringCriteria(pos) {
+  if (!pos.hiringCriteria) return '';
+  const hc = pos.hiringCriteria;
+  if (Array.isArray(hc)) {
+    return '\n【採用基準（社内規定）】\n' + hc.map((h, i) =>
+      `枠${i === 0 ? 'A' : 'B'}:\n・年齢: ${h.ageLimit}\n・経験: ${h.experience}\n・資格: ${h.license}`
+    ).join('\n');
+  }
+  return `\n【採用基準（社内規定）】\n・年齢: ${hc.ageLimit}\n・経験: ${hc.experience}\n・資格: ${hc.license}`;
+}
+
+function buildPrompt(pos, resumeText) {
+  return `【応募ポジション】
+${pos.name}（${pos.nameJa}）
+給与レンジ: ${pos.comp}
+
+【ポジション概要】
+${pos.context}
+
+【必須要件（MUST）】
+${pos.required.map(r => `・${r}`).join('\n')}
+
+【歓迎要件（WANT）】
+${pos.preferred.map(r => `・${r}`).join('\n')}
+${buildHiringCriteria(pos)}
+
+【候補者レジュメ】
+${resumeText}
+
+上記の情報をもとに書類選考の判定を行い、指定のJSON形式で回答してください。採用基準がある場合は年齢・資格要件も考慮してください。`;
+}
+
+// ============================
+// RENDER RESULT
+// ============================
+function renderResult(data, pos) {
+  const resultEl = document.getElementById('result');
+
+  const verdictClass = data.verdict;
+  const icons = { pass: '◎', conditional: '△', fail: '×' };
+
+  const scoreColor = (s) => {
+    if (s >= 75) return 'var(--pass)';
+    if (s >= 50) return 'var(--warn)';
+    return 'var(--danger)';
+  };
+
+  const scores = data.scores;
+
+  resultEl.innerHTML = `
+    <p class="section-title">選考結果 — ${pos.name}</p>
+
+    <div class="verdict-bar ${verdictClass}">
+      <div class="verdict-icon">${icons[data.verdict]}</div>
+      <div>
+        <div class="verdict-label">${data.verdict_label}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${data.verdict_reason}</div>
+      </div>
+      <div class="verdict-sub">総合 ${scores.overall.score}/100</div>
+    </div>
+
+    <div class="score-grid">
+      ${renderScoreItem('必須要件合致度', scores.required_fit, scoreColor)}
+      ${renderScoreItem('歓迎要件合致度', scores.preferred_fit, scoreColor)}
+      ${renderScoreItem('コンピテンシー適合', scores.competency_fit, scoreColor)}
+      ${renderScoreItem('総合評価', scores.overall, scoreColor)}
+    </div>
+
+    <div class="analysis-section">
+      <div class="analysis-title">強み</div>
+      <div>${data.strengths.map(s => `<span class="tag tag-pass">✓ ${s}</span>`).join('')}</div>
+    </div>
+
+    ${data.concerns.length > 0 ? `
+    <div class="analysis-section">
+      <div class="analysis-title">懸念点</div>
+      <div>${data.concerns.map(c => `<span class="tag tag-warn">△ ${c}</span>`).join('')}</div>
+    </div>` : ''}
+
+    ${data.missing_required && data.missing_required.length > 0 ? `
+    <div class="analysis-section">
+      <div class="analysis-title">不足している必須要件</div>
+      <div>${data.missing_required.map(m => `<span class="tag tag-fail">✗ ${m}</span>`).join('')}</div>
+    </div>` : ''}
+
+    <div class="analysis-section">
+      <div class="analysis-title">面接官へのコメント</div>
+      <div class="analysis-body">${data.recommendation}</div>
+    </div>
+  `;
+
+  resultEl.style.display = 'block';
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderScoreItem(label, scoreObj, colorFn) {
+  const color = colorFn(scoreObj.score);
+  return `
+    <div class="score-item">
+      <div class="score-name">${label}</div>
+      <div class="score-bar-wrap">
+        <div class="score-bar-fill" style="width:${scoreObj.score}%;background:${color};"></div>
+      </div>
+      <div class="score-val">${scoreObj.score}<span>/100</span></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:6px;">${scoreObj.comment}</div>
+    </div>
+  `;
+}
+
+// ============================
+// UI HELPERS
+// ============================
+function showLoading(show) {
+  document.getElementById('loading').className = show ? 'loading-wrap show' : 'loading-wrap';
+  document.getElementById('screen-btn').disabled = show;
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.className = msg ? 'error-msg show' : 'error-msg';
+}
+
+function resetForm() {
+  selectedPosition = null;
+  pdfText = null;
+  document.querySelectorAll('.position-card').forEach(el => el.classList.remove('selected'));
+  document.getElementById('resume-text').value = '';
+  document.getElementById('pdf-input').value = '';
+  document.getElementById('file-info').textContent = '';
+  document.getElementById('char-count').textContent = '';
+  document.getElementById('result').style.display = 'none';
+  showError('');
+}
+
+function switchTab(tab) {
+  if (tab !== 'screening') return; // only screening is live
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`page-${tab}`).classList.add('active');
+}
+
+// Init
+init();
+</script>
+</body>
+</html>

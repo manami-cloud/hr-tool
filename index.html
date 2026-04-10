@@ -558,14 +558,115 @@
     color: var(--text-muted);
     margin-left: auto;
   }
+
+  /* Gear button */
+  .gear-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 7px 9px;
+    display: flex;
+    align-items: center;
+    transition: all 0.15s;
+  }
+  .gear-btn:hover { border-color: var(--border2); color: var(--text); }
+
+  /* Popup overlay */
+  .popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 200;
+  }
+  .popup-overlay.show { display: block; }
+
+  /* Popup */
+  .popup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    width: 440px;
+    max-width: calc(100vw - 32px);
+    z-index: 201;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  .popup.show { display: block; }
+
+  .popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .popup-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+  }
+  .popup-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    transition: color 0.15s;
+  }
+  .popup-close:hover { color: var(--text); }
+  .popup-body { padding: 24px; }
 </style>
 </head>
 <body>
 
 <header class="header">
   <div class="logo">MC <span>//</span> HR TOOL</div>
-  <div class="header-tag">大池真奈美 · Monochrome</div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div id="key-status-header" class="key-status">
+      <div class="key-dot"></div>
+      <span id="key-status-text">APIキー未設定</span>
+    </div>
+    <button class="gear-btn" onclick="openSettings()" title="API設定">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
 </header>
+
+<!-- Settings Popup -->
+<div class="popup-overlay" id="popup-overlay" onclick="closeSettings()"></div>
+<div class="popup" id="settings-popup">
+  <div class="popup-header">
+    <div class="popup-title">API設定</div>
+    <button class="popup-close" onclick="closeSettings()">✕</button>
+  </div>
+  <div class="popup-body">
+    <label class="input-label">Anthropic APIキー</label>
+    <div class="api-input-wrap">
+      <input type="password" id="api-key" placeholder="sk-ant-api..." />
+      <button class="btn btn-primary" onclick="saveKey()">保存</button>
+    </div>
+    <div id="key-status" class="key-status" style="margin-top:12px;">
+      <div class="key-dot"></div>
+      未設定
+    </div>
+    <p style="margin-top:16px;font-size:12px;color:var(--text-muted);line-height:1.7;">
+      APIキーは <a href="https://console.anthropic.com" target="_blank" style="color:var(--accent);">console.anthropic.com</a> で取得できます。キーはブラウザ内にのみ保存され、外部に送信されません。
+    </p>
+  </div>
+</div>
 
 <nav class="nav">
   <div class="nav-tab active" onclick="switchTab('screening')">① 書類選考AI</div>
@@ -577,19 +678,6 @@
 
   <!-- SCREENING PAGE -->
   <div class="page active" id="page-screening">
-
-    <!-- API Key -->
-    <div class="card" id="api-section">
-      <p class="section-title">API設定</p>
-      <div class="api-input-wrap">
-        <input type="password" id="api-key" placeholder="sk-ant-api..." />
-        <button class="btn btn-primary" onclick="saveKey()">保存</button>
-      </div>
-      <div id="key-status" class="key-status">
-        <div class="key-dot"></div>
-        未設定
-      </div>
-    </div>
 
     <!-- Step 1: Position -->
     <p class="section-title">STEP 01 — ポジション選択</p>
@@ -835,13 +923,29 @@ function saveKey() {
 
 function updateKeyStatus() {
   const el = document.getElementById('key-status');
+  const headerEl = document.getElementById('key-status-header');
+  const headerText = document.getElementById('key-status-text');
   if (apiKey) {
     el.className = 'key-status set';
     el.innerHTML = `<div class="key-dot"></div>APIキー設定済み`;
+    if (headerEl) { headerEl.className = 'key-status set'; }
+    if (headerText) { headerText.textContent = 'APIキー設定済み'; }
   } else {
     el.className = 'key-status';
     el.innerHTML = `<div class="key-dot"></div>未設定`;
+    if (headerEl) { headerEl.className = 'key-status'; }
+    if (headerText) { headerText.textContent = 'APIキー未設定'; }
   }
+}
+
+function openSettings() {
+  document.getElementById('popup-overlay').classList.add('show');
+  document.getElementById('settings-popup').classList.add('show');
+}
+
+function closeSettings() {
+  document.getElementById('popup-overlay').classList.remove('show');
+  document.getElementById('settings-popup').classList.remove('show');
 }
 
 function updateCharCount() {

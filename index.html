@@ -794,15 +794,26 @@
 
     <p class="section-title">STEP 02 — 面接データ</p>
     <div class="card">
+      <label class="input-label">Google SheetsのURL</label>
+      <div style="display:flex;gap:10px;margin-bottom:8px;">
+        <input type="text" id="db-sheets-url" placeholder="https://docs.google.com/spreadsheets/d/..." style="flex:1;" />
+        <button class="btn btn-ghost" onclick="fetchSheetsData()" id="db-fetch-btn">読み込む</button>
+      </div>
+      <div id="db-sheets-status" style="font-family:var(--mono);font-size:11px;color:var(--text-muted);margin-bottom:4px;"></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px;">※スプレッドシートの共有設定を「リンクを知っている全員が閲覧可能」にしてください</div>
+
+      <div class="or-divider">または</div>
+
       <div class="file-zone" id="db-file-zone">
         <input type="file" id="db-xlsx-input" accept=".xlsx,.csv" onchange="handleDbFile(this)" />
         <div class="file-zone-text">
-          投票フォームのSpreadsheet（.xlsx）をドラッグ＆ドロップ、または<span>クリックして選択</span>
+          .xlsxをドラッグ＆ドロップ、または<span>クリックして選択</span>
         </div>
         <div class="file-info" id="db-file-info"></div>
       </div>
+
       <div class="or-divider">または</div>
-      <label class="input-label">面接メモをテキストで貼り付ける</label>
+      <label class="input-label">テキストで貼り付ける</label>
       <textarea id="db-memo" rows="7" placeholder="面接官ごとのFBメモをそのまま貼り付けてください..."></textarea>
     </div>
 
@@ -1385,69 +1396,36 @@ async function runDebrief() {
   showDbError('');
   document.getElementById('db-result').style.display = 'none';
 
-  const systemPrompt = `あなたは株式会社モノクロームのHR担当・大池真奈美さんのDebrief資料作成をサポートするAIです。
-面接官の投票データとフィードバックをもとに、以下のテンプレート構成に従ってDebrief資料を生成してください。
+  const systemPrompt = "あなたは株式会社モノクロームのHR担当・大池真奈美さんのDebrief資料作成をサポートするAIです。\n" +
+    "面接官の投票データとフィードバックをもとに、以下のテンプレート構成に従ってDebrief資料を生成してください。\n\n" +
+    "【出力形式】以下の構成でMarkdown形式で出力してください。\n\n" +
+    "# [日付] [候補者名] 採用Debrief資料\n\n" +
+    "候補者：[候補者名]\nポジション：[ポジション名]\n\n" +
+    "## 1. 投票結果サマリー\n\n" +
+    "| 面接官 | Role | 担当コンピテンシー | Vote |\n" +
+    "|--------|------|------------------|------|\n" +
+    "| [名前] | [Role] | [コンピテンシー] | [Vote絵文字 + 日本語] |\n\n" +
+    "**総評：** [何名中何名が採用推奨かの総括文]\n\n" +
+    "## 2. 面接官ごとのフィードバック詳細\n\n" +
+    "### [面接官名] ｜ [Role] ｜ [Vote]\n\n" +
+    "**担当Competency：** [コンピテンシー名]\n\n" +
+    "**3段階評価：** [期待を超えている / 期待を満たしている / 期待を一部満たしている]\n\n" +
+    "**評価の理由（Pros/Cons）**\n\nPros\n- [ポジティブポイント]\n\nCons\n- [懸念点]\n\n" +
+    "**【面接ログ】**\n[面接メモの内容をそのまま記載]\n\n（全面接官分繰り返す）\n\n" +
+    "## 3. ディスカッション\n\n- [ディスカッションのポイント]\n\n" +
+    "## 4. 意思決定\n\n- [採用/不採用とオファー条件など]\n\n" +
+    "【Voteの表記ルール】\n" +
+    "- Strongly Incline to Hire → ⭐ 強く採用推奨\n" +
+    "- Incline to Hire → ✅ 採用推奨\n" +
+    "- Not Incline to Hire → ❌ 不採用推奨\n\n" +
+    "情報が不足している箇所は[要記入]のプレースホルダーを使ってください。"
 
-【出力形式】
-以下の構成でMarkdown形式で出力してください。
-
-# [日付] [候補者名] 採用Debrief資料
-
-候補者：[候補者名]
-ポジション：[ポジション名]
-
-## 1. 投票結果サマリー
-
-| 面接官 | Role | 担当コンピテンシー | Vote |
-|--------|------|------------------|------|
-| [名前] | [Role] | [コンピテンシー] | [Vote絵文字 + 日本語] |
-
-**総評：** [何名中何名が採用推奨かの総括文]
-
-## 2. 面接官ごとのフィードバック詳細
-
-### [面接官名] ｜ [Role] ｜ [Vote]
-
-**担当Competency：** [コンピテンシー名]
-
-**3段階評価：** [期待を超えている / 期待を満たしている / 期待を一部満たしている]
-
-**評価の理由（Pros/Cons）**
-
-Pros
-- [ポジティブポイント]
-
-Cons
-- [懸念点]
-
-**【面接ログ】**
-[面接メモの内容をそのまま記載]
-
-（全面接官分繰り返す）
-
-## 3. ディスカッション
-
-- [ディスカッションのポイント]
-
-## 4. 意思決定
-
-- [採用/不採用とオファー条件など]
-
-【Voteの表記ルール】
-- Strongly Incline to Hire → ⭐ 強く採用推奨
-- Incline to Hire → ✅ 採用推奨
-- Not Incline to Hire → ❌ 不採用推奨
-
-情報が不足している箇所は[要記入]のプレースホルダーを使ってください。`;
-
-  const userPrompt = `以下の情報をもとにDebrief資料を作成してください。
-
-候補者名：${candidate || '[候補者名]'}
-ポジション：${posText || '[ポジション名]'}
-Debrief日：${date || '[日付]'}
-
-${memo ? `【面接データ（テキスト）】
-${memo}` : '【面接データ】添付のSpreadsheetを参照してください。'}`;
+  const memoSection = memo ? '【面接データ】\n' + memo : '【面接データ】添付のSpreadsheetを参照してください。';
+  const userPrompt = '以下の情報をもとにDebrief資料を作成してください。\n\n' +
+    '候補者名：' + (candidate || '[候補者名]') + '\n' +
+    'ポジション：' + (posText || '[ポジション名]') + '\n' +
+    'Debrief日：' + (date || '[日付]') + '\n\n' +
+    memoSection;
 
   try {
     let messages;
@@ -1566,11 +1544,84 @@ function showDbError(msg) {
   el.className = msg ? 'error-msg show' : 'error-msg';
 }
 
+async function fetchSheetsData() {
+  const url = document.getElementById('db-sheets-url').value.trim();
+  if (!url) return;
+
+  const statusEl = document.getElementById('db-sheets-status');
+  const btn = document.getElementById('db-fetch-btn');
+
+  // Extract spreadsheet ID
+  const idPart = url.split('/spreadsheets/d/')[1];
+  if (!idPart) {
+    statusEl.textContent = 'URLの形式が正しくありません。Google SheetsのURLを入力してください。';
+    statusEl.style.color = 'var(--danger)';
+    return;
+  }
+  const sheetId = idPart.split('/')[0];
+
+  // Extract gid
+  let gid = '0';
+  if (url.indexOf('gid=') !== -1) {
+    gid = url.split('gid=')[1].split('&')[0].split('#')[0];
+  }
+
+  const csvUrl = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/export?format=csv&gid=' + gid;
+
+  btn.disabled = true;
+  statusEl.style.color = 'var(--text-muted)';
+  statusEl.textContent = '読み込み中...';
+
+  try {
+    const response = await fetch(csvUrl);
+    if (!response.ok) throw new Error('取得失敗。共有設定を確認してください。');
+    const csv = await response.text();
+
+    // Parse CSV
+    const rows = csv.split('\n').map(row => {
+      const result = [];
+      let field = '';
+      let inQuotes = false;
+      for (let i = 0; i < row.length; i++) {
+        const ch = row[i];
+        if (ch === '"') { inQuotes = !inQuotes; }
+        else if (ch === ',' && !inQuotes) { result.push(field.trim()); field = ''; }
+        else { field += ch; }
+      }
+      result.push(field.trim());
+      return result;
+    }).filter(r => r.some(c => c));
+
+    if (rows.length < 2) throw new Error('データが見つかりませんでした。');
+
+    const headers = rows[0];
+    let text = '';
+    for (let i = 1; i < rows.length; i++) {
+      text += '\n--- 回答 ' + i + ' ---\n';
+      headers.forEach((h, j) => {
+        if (rows[i][j]) text += h + ': ' + rows[i][j] + '\n';
+      });
+    }
+
+    document.getElementById('db-memo').value = text.trim();
+    statusEl.textContent = '✓ ' + (rows.length - 1) + '件の回答を読み込みました';
+    statusEl.style.color = 'var(--pass)';
+
+  } catch (e) {
+    statusEl.textContent = 'エラー：' + e.message;
+    statusEl.style.color = 'var(--danger)';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 function resetDebrief() {
   document.getElementById('db-candidate').value = '';
   document.getElementById('db-position').value = '';
   document.getElementById('db-date').value = '';
   document.getElementById('db-memo').value = '';
+  document.getElementById('db-sheets-url').value = '';
+  document.getElementById('db-sheets-status').textContent = '';
   document.getElementById('db-xlsx-input').value = '';
   document.getElementById('db-file-info').textContent = '';
   document.getElementById('db-result').style.display = 'none';

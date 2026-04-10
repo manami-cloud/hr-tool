@@ -747,20 +747,10 @@
     </div>
 
     <p class="section-title">STEP 02 — 出力設定</p>
-    <div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-      <div>
-        <label class="input-label">FBの種類</label>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
-          <label class="radio-label"><input type="radio" name="fb-type" value="pass" checked /> 通過FB</label>
-          <label class="radio-label"><input type="radio" name="fb-type" value="reject" /> 見送りFB</label>
-          <label class="radio-label"><input type="radio" name="fb-type" value="other" onchange="toggleOtherInput()" /> その他</label>
-        </div>
-        <input type="text" id="fb-type-other" placeholder="例：日程調整、条件付き通過…" style="width:100%;margin-top:8px;display:none;" />
-      </div>
-
+    <div class="card">
       <div>
         <label class="input-label">出力先</label>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+        <div style="display:flex;gap:24px;margin-top:4px;">
           <label class="radio-label"><input type="radio" name="fb-dest" value="email" checked /> メール（エージェント宛）</label>
           <label class="radio-label"><input type="radio" name="fb-dest" value="slack" /> Slack（社外向け）</label>
         </div>
@@ -1294,13 +1284,6 @@ function switchTab(tab) {
 // Init
 init();
 initFbPositions();
-
-function toggleOtherInput() {
-  const isOther = document.querySelector('input[name="fb-type"]:checked').value === 'other';
-  const el = document.getElementById('fb-type-other');
-  el.style.display = isOther ? 'block' : 'none';
-  if (isOther) el.focus();
-}
 // ============================
 // FB GENERATION
 // ============================
@@ -1320,8 +1303,6 @@ async function runFeedback() {
   if (!key) { showFbError('APIキーを設定してください（歯車アイコンから）。'); return; }
 
   const memo = document.getElementById('fb-memo').value.trim();
-  const fbType = document.querySelector('input[name="fb-type"]:checked').value;
-  const fbTypeOther = document.getElementById('fb-type-other').value.trim();
   const dest = document.querySelector('input[name="fb-dest"]:checked').value;
 
   if (!memo) { showFbError('面接FBメモを入力してください。'); return; }
@@ -1331,11 +1312,6 @@ async function runFeedback() {
   showFbError('');
   document.getElementById('fb-result').style.display = 'none';
 
-  const typeLabel = {
-    pass: '通過FB（次の選考に進める旨を伝える）',
-    reject: '見送りFB（今回は見送りの旨を丁寧に伝える）',
-    other: fbTypeOther ? `その他 — 目的：${fbTypeOther}` : 'その他（目的に合わせて文章を作成）'
-  }[fbType];
   const destLabel = {
     email: 'メール（エージェントや外部向け・ビジネスフォーマルで丁寧な敬語・件名あり・署名あり）',
     slack: 'Slack（社外のエージェントや外部担当者宛・簡潔でテンポよく・体言止め可・箇条書き可・絵文字なし）'
@@ -1350,7 +1326,6 @@ ${memo}
 - メモの文章・箇条書きをそのまま使い、語尾・言葉遣い・口語表現だけをビジネス表現に直す
 - 内容・情報・観点・順番は一切変えない。追加も削除も要約もしない
 - 「〜っぽい」→「〜の傾向がある」、「おっちゃん」→「担当者」のように表現のみ置き換える
-- 見送りの場合は「スキル不足」より「採用要件とのマッチング」という表現を優先
 - メールの場合：件名・宛名（[エージェント名]）・本文・署名（大池真奈美 / 株式会社モノクローム）を付ける。候補者名は[候補者名]とする
 - Slackの場合：絵文字なし。候補者名は[候補者名]とする
 
@@ -1379,7 +1354,7 @@ ${memo}
 
     const data = await response.json();
     const text = data.content.map(c => c.text || '').join('');
-    renderFbResult(text, dest, fbType);
+    renderFbResult(text, dest);
 
   } catch (e) {
     showFbError(e.message);
@@ -1388,14 +1363,13 @@ ${memo}
   }
 }
 
-function renderFbResult(text, dest, fbType) {
+function renderFbResult(text, dest) {
   const el = document.getElementById('fb-result');
   const destIcon = dest === 'email' ? '✉️' : '💬';
   const destLabel = dest === 'email' ? 'メール' : 'Slack';
-  const typeLabel = fbType === 'pass' ? '通過FB' : '見送りFB';
 
   el.innerHTML = `
-    <p class="section-title">生成結果 — ${destLabel} / ${typeLabel}</p>
+    <p class="section-title">生成結果 — ${destLabel}</p>
     <div class="analysis-section" style="position:relative;">
       <div class="analysis-title">${destIcon} ${destLabel}文章</div>
       <div class="analysis-body" id="fb-output" style="white-space:pre-wrap;font-family:var(--sans);line-height:1.9;">${text}</div>
@@ -1429,9 +1403,6 @@ function showFbError(msg) {
 
 function resetFeedback() {
   document.getElementById('fb-memo').value = '';
-  document.querySelector('input[name="fb-type"][value="pass"]').checked = true;
-  document.getElementById('fb-type-other').style.display = 'none';
-  document.getElementById('fb-type-other').value = '';
   document.querySelector('input[name="fb-dest"][value="email"]').checked = true;
   document.getElementById('fb-result').style.display = 'none';
   showFbError('');

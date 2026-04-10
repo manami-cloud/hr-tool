@@ -1385,7 +1385,7 @@ async function runDebrief() {
   if (!key) { showDbError('APIキーを設定してください（歯車アイコンから）。'); return; }
 
   const candidate = document.getElementById('db-candidate').value.trim();
-  const posId = document.getElementById('db-position').value;
+  const posText = document.getElementById('db-position').value.trim();
   const date = document.getElementById('db-date').value.trim();
   const memo = document.getElementById('db-memo').value.trim();
 
@@ -1454,7 +1454,7 @@ async function runDebrief() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 3000,
         system: systemPrompt,
         messages

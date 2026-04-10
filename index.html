@@ -1354,14 +1354,68 @@ let dbXlsxData = null;
 async function handleDbFile(input) {
   const file = input.files[0];
   if (!file) return;
-  document.getElementById('db-file-info').textContent = `${file.name} (${(file.size/1024).toFixed(0)}KB)`;
+  document.getElementById('db-file-info').textContent = file.name + ' (' + (file.size/1024).toFixed(0) + 'KB) — 読み込み中...';
 
-  // Read as base64 for API
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    dbXlsxData = e.target.result.split(',')[1];
-  };
-  reader.readAsDataURL(file);
+  // For CSV files, read as text directly
+  if (file.name.endsWith('.csv')) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const csv = e.target.result;
+      const rows = csv.split('\n').map(row => {
+        const result = [];
+        let field = '';
+        let inQuotes = false;
+        for (let i = 0; i < row.length; i++) {
+          const ch = row[i];
+          if (ch === '"') { inQuotes = !inQuotes; }
+          else if (ch === ',' && !inQuotes) { result.push(field.trim()); field = ''; }
+          else { field += ch; }
+        }
+        result.push(field.trim());
+        return result;
+      }).filter(r => r.some(c => c));
+
+      if (rows.length >= 2) {
+        const headers = rows[0];
+        let text = '';
+        for (let i = 1; i < rows.length; i++) {
+          text += '\n--- 回答 ' + i + ' ---\n';
+          headers.forEach((h, j) => { if (rows[i][j]) text += h + ': ' + rows[i][j] + '\n'; });
+        }
+        document.getElementById('db-memo').value = text.trim();
+        document.getElementById('db-file-info').textContent = file.name + ' (' + (rows.length - 1) + '件読み込み済み)';
+        dbXlsxData = null;
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    // For xlsx, use SheetJS to parse
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs');
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+        if (rows.length >= 2) {
+          const headers = rows[0];
+          let text = '';
+          for (let i = 1; i < rows.length; i++) {
+            if (!rows[i].some(c => c)) continue;
+            text += '\n--- 回答 ' + i + ' ---\n';
+            headers.forEach((h, j) => { if (rows[i][j]) text += h + ': ' + rows[i][j] + '\n'; });
+          }
+          document.getElementById('db-memo').value = text.trim();
+          document.getElementById('db-file-info').textContent = file.name + ' (' + (rows.length - 1) + '件読み込み済み)';
+          dbXlsxData = null;
+        }
+      } catch(err) {
+        document.getElementById('db-file-info').textContent = 'エラー：' + err.message + '（CSVで再試行してください）';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
 }
 
 // Drag and drop for debrief
@@ -1430,20 +1484,8 @@ async function runDebrief() {
   try {
     let messages;
 
-    if (dbXlsxData && !memo) {
-      messages = [{
-        role: 'user',
-        content: [
-          {
-            type: 'document',
-            source: { type: 'base64', media_type: 'application/pdf', data: dbXlsxData }
-          },
-          { type: 'text', text: userPrompt }
-        ]
-      }];
-    } else {
-      messages = [{ role: 'user', content: userPrompt }];
-    }
+    // Always use text - xlsx can't be sent as PDF
+    messages = [{ role: 'user', content: userPrompt }];
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',

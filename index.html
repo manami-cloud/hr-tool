@@ -625,6 +625,22 @@
   }
   .popup-close:hover { color: var(--text); }
   .popup-body { padding: 24px; }
+
+  .radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+  }
+  .radio-label input[type="radio"] {
+    accent-color: var(--accent);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+  }
+  .radio-label:hover { color: var(--text); }
 </style>
 </head>
 <body>
@@ -671,7 +687,7 @@
 <nav class="nav">
   <div class="nav-tab active" onclick="switchTab('screening')">① 書類選考AI</div>
   <div class="nav-tab disabled" onclick="switchTab('debrief')" style="opacity:0.4;cursor:not-allowed;" title="近日公開">② Debrief生成</div>
-  <div class="nav-tab disabled" onclick="switchTab('feedback')" style="opacity:0.4;cursor:not-allowed;" title="近日公開">③ FB文章生成</div>
+  <div class="nav-tab" onclick="switchTab('feedback')">③ FB文章生成</div>
 </nav>
 
 <main class="main">
@@ -720,6 +736,52 @@
 
   </div>
 
+
+  <!-- FB PAGE -->
+  <div class="page" id="page-feedback">
+
+    <p class="section-title">STEP 01 — 面接FBメモ</p>
+    <div class="card">
+      <label class="input-label">面接官のラフメモをそのまま貼り付けてください</label>
+      <textarea id="fb-memo" rows="7" placeholder="例：コミュニケーションはよかった。技術力はまあまあ。リーダー経験なし。熱意は感じた。ちょっと受け身かも。"></textarea>
+    </div>
+
+    <p class="section-title">STEP 02 — 出力設定</p>
+    <div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <label class="input-label">FBの種類</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+          <label class="radio-label"><input type="radio" name="fb-type" value="pass" checked /> 通過FB</label>
+          <label class="radio-label"><input type="radio" name="fb-type" value="reject" /> 見送りFB</label>
+          <label class="radio-label"><input type="radio" name="fb-type" value="other" onchange="toggleOtherInput()" /> その他</label>
+        </div>
+        <input type="text" id="fb-type-other" placeholder="例：日程調整、条件付き通過…" style="width:100%;margin-top:8px;display:none;" />
+      </div>
+
+      <div>
+        <label class="input-label">出力先</label>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+          <label class="radio-label"><input type="radio" name="fb-dest" value="email" checked /> メール（エージェント宛）</label>
+          <label class="radio-label"><input type="radio" name="fb-dest" value="slack" /> Slack（社外向け）</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn btn-primary" id="fb-btn" onclick="runFeedback()">FB文章を生成</button>
+      <button class="btn btn-ghost" onclick="resetFeedback()">リセット</button>
+    </div>
+
+    <div class="error-msg" id="fb-error-msg"></div>
+
+    <div class="loading-wrap" id="fb-loading">
+      <div class="loader"></div>
+      <div class="loading-text">FB文章を生成中...</div>
+    </div>
+
+    <div class="result-wrap" id="fb-result" style="display:none;"></div>
+
+  </div>
 </main>
 
 <script>
@@ -1223,7 +1285,6 @@ function resetForm() {
 }
 
 function switchTab(tab) {
-  if (tab !== 'screening') return; // only screening is live
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   event.target.classList.add('active');
@@ -1232,6 +1293,148 @@ function switchTab(tab) {
 
 // Init
 init();
+initFbPositions();
+
+function toggleOtherInput() {
+  const isOther = document.querySelector('input[name="fb-type"]:checked').value === 'other';
+  const el = document.getElementById('fb-type-other');
+  el.style.display = isOther ? 'block' : 'none';
+  if (isOther) el.focus();
+}
+// ============================
+// FB GENERATION
+// ============================
+function initFbPositions() {
+  const sel = document.getElementById('fb-position');
+  if (!sel) return;
+  POSITIONS.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name + '（' + p.nameJa + '）';
+    sel.appendChild(opt);
+  });
+}
+
+async function runFeedback() {
+  const key = apiKey || document.getElementById('api-key').value.trim();
+  if (!key) { showFbError('APIキーを設定してください（歯車アイコンから）。'); return; }
+
+  const memo = document.getElementById('fb-memo').value.trim();
+  const fbType = document.querySelector('input[name="fb-type"]:checked').value;
+  const fbTypeOther = document.getElementById('fb-type-other').value.trim();
+  const dest = document.querySelector('input[name="fb-dest"]:checked').value;
+
+  if (!memo) { showFbError('面接FBメモを入力してください。'); return; }
+
+
+  showFbLoading(true);
+  showFbError('');
+  document.getElementById('fb-result').style.display = 'none';
+
+  const typeLabel = {
+    pass: '通過FB（次の選考に進める旨を伝える）',
+    reject: '見送りFB（今回は見送りの旨を丁寧に伝える）',
+    other: fbTypeOther ? `その他 — 目的：${fbTypeOther}` : 'その他（目的に合わせて文章を作成）'
+  }[fbType];
+  const destLabel = { email: 'メール（エージェント宛・ビジネスフォーマル・件名あり・署名あり）', slack: 'Slack（社外向け・エージェントや外部担当者宛・簡潔・箇条書き・絵文字なし）' }[dest];
+
+  const prompt = `以下の面接FBメモをもとに、${destLabel}形式で${typeLabel}の文章を作成してください。
+
+【トーン】${toneLabel}
+【面接FBメモ（ラフ）】
+${memo}
+
+ルール：
+- 見送りの場合は「スキル不足」より「現在の採用要件とのマッチング」という表現を優先
+- 候補者に敬意を持ったトーンを保つ
+- メールの場合：件名・宛名（[エージェント名]）・本文・署名（大池真奈美 / 株式会社モノクローム）を含める。候補者名は[候補者名]のプレースホルダーを使う
+- Slackの場合：社外のエージェントや外部担当者宛。3〜6行・体言止め可・絵文字なし。候補者名は[候補者名]のプレースホルダーを使う
+
+${keepOriginal ? '- 面接官のメモの言い回しや表現をなるべくそのまま活かし、整える程度にとどめる' : '- 面接官のラフな言葉はビジネス表現に翻訳する'}
+
+文章のみを出力してください。前置きや説明は不要です。`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || 'APIエラー: ' + response.status);
+    }
+
+    const data = await response.json();
+    const text = data.content.map(c => c.text || '').join('');
+    renderFbResult(text, dest, fbType);
+
+  } catch (e) {
+    showFbError(e.message);
+  } finally {
+    showFbLoading(false);
+  }
+}
+
+function renderFbResult(text, dest, fbType) {
+  const el = document.getElementById('fb-result');
+  const destIcon = dest === 'email' ? '✉️' : '💬';
+  const destLabel = dest === 'email' ? 'メール' : 'Slack';
+  const typeLabel = fbType === 'pass' ? '通過FB' : '見送りFB';
+
+  el.innerHTML = `
+    <p class="section-title">生成結果 — ${destLabel} / ${typeLabel}</p>
+    <div class="analysis-section" style="position:relative;">
+      <div class="analysis-title">${destIcon} ${destLabel}文章</div>
+      <div class="analysis-body" id="fb-output" style="white-space:pre-wrap;font-family:var(--sans);line-height:1.9;">${text}</div>
+      <button class="btn btn-ghost" onclick="copyFbText()" style="margin-top:16px;font-size:11px;">コピー</button>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--text-muted);">修正したい点があれば下のメモを書き換えて再生成できます。</div>
+  `;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copyFbText() {
+  const text = document.getElementById('fb-output').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = 'コピーしました！';
+    setTimeout(() => { btn.textContent = 'コピー'; }, 2000);
+  });
+}
+
+function showFbLoading(show) {
+  document.getElementById('fb-loading').className = show ? 'loading-wrap show' : 'loading-wrap';
+  document.getElementById('fb-btn').disabled = show;
+}
+
+function showFbError(msg) {
+  const el = document.getElementById('fb-error-msg');
+  el.textContent = msg;
+  el.className = msg ? 'error-msg show' : 'error-msg';
+}
+
+function resetFeedback() {
+  document.getElementById('fb-memo').value = '';
+  document.querySelector('input[name="fb-type"][value="pass"]').checked = true;
+  document.getElementById('fb-type-other').style.display = 'none';
+  document.getElementById('fb-type-other').value = '';
+  document.querySelector('input[name="fb-dest"][value="email"]').checked = true;
+  document.getElementById('fb-result').style.display = 'none';
+  showFbError('');
+}
+
 </script>
 </body>
 </html>
